@@ -6,24 +6,8 @@ import (
 	"net/http"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/djimenez/iconv-go"
 )
-
-//getMaxPageNumber은 검색한 해당 사이트의 최대번쨰 페이지 값을 int로 반환해준다.
-func getMaxPageNumber(){
-	
-}
-
-//getJobsPage는 페이지에 존재하는 직업을 리스트로 가져와 준다. 각 원소들은 title, company, location, info를 string값으로 가지고 있는 구조체이다.
-func getJobsPage(){
-
-}
-
-
-//getAllJobs는 주어진 getMaxPageNumber를 이용해 반복문을 거쳐 각페이지에서 얻게되는 모든 직업리스트들을 한 리스트에 합한다.
-func getAllJobs(){
-
-}
-
 func errCheck(err error) { // 에러 검사
 	if err != nil {
 		log.Fatal(err)
@@ -38,22 +22,42 @@ func respCheck(resp *http.Response) {
 	}
 }
 
+func getAlbaList(url string) {
+	res, err := http.Get(url)
+	respCheck(res)
+	errCheck(err)
+	html, err := goquery.NewDocumentFromReader(res.Body) //브랜드 사이트
+	errCheck(err)
+
+	html.Find("tbody").Find("tr").Each(func(i int, s *goquery.Selection) {
+		className, _ := s.Attr("class")
+		if className != "summaryView" {
+			s.Find("td").Each(func(j int, sel* goquery.Selection){
+				out, _ := iconv.ConvertString(sel.Text(), "euc-kr", "utf-8")
+				fmt.Println(out)
+			})
+		}
+	})
+
+}
+
+
 //메인에서는 서버를 열어 home에 원하는 직업을 입력해 그 결과를 csv파일로 얻을 수 있도록 해준다.
 func main(){
-	resp, err := http.Get("https://kr.indeed.com/jobs?q=python&limit=50&radius=25&start=0")
+	resp, err := http.Get("http://www.alba.co.kr")
 	
 	respCheck(resp)
 	errCheck(err)
 	defer resp.Body.Close()
 	//html load
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	doc, err := goquery.NewDocumentFromReader(resp.Body) // 사이트 html 얻기
 	errCheck(err)
-	lists := doc.Find(".jobsearch-SerpJobCard")
-	fmt.Println(lists.Length())
-
-	lists.Each(func(idx int, sel *goquery.Selection) {
-		title := sel.Find(".title>a").Text()
-		fmt.Println(title)
+	//슈퍼브랜드 채용정보 리스트를 반복문으로 돌아 각 브랜드 점포리스트들을 배열로 얻어 csv로 저장한다.
+	doc.Find("div#MainSuperBrand").Find("ul.goodsBox").Find("li").Each(func(i int,s *goquery.Selection){
+		brandUrl, ok := s.Find("a.goodsBox-info").Attr("href") //슈퍼브랜드 채용주소 접근 성공
+		if ok {
+			getAlbaList(brandUrl) //알바리스트 배열 반환
+		}
 	})
-
+		
 }
