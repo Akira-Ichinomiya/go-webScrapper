@@ -1,11 +1,9 @@
-package main
+package getjobs
 
 import (
-	"encoding/csv"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/djimenez/iconv-go"
@@ -33,8 +31,7 @@ func respCheck(resp *http.Response) {
 	}
 }
 
-// getAlbaList는 한 직업에 관한 모든 매장리스트들을 반환한다. albaList를 ch 채널로 전송함.
-func getAlbaList(url string, ch chan<- []jobData)  {
+func getAlbaList(url string) []jobData {
 	albaList := []jobData{}
 	res, err := http.Get(url)
 	respCheck(res)
@@ -60,16 +57,12 @@ func getAlbaList(url string, ch chan<- []jobData)  {
 			if len(li.location) != 0 {albaList = append(albaList, li)}
 		}
 	})
-
-	ch <- albaList
+	return albaList
 }
 
-//메인에서는 서버를 열어 home에 원하는 직업을 입력해 그 결과를 csv파일로 얻을 수 있도록 해준다.
 func main(){
-	totalJobs := 0
-	ch := make(chan []jobData)
 	resp, err := http.Get("http://www.alba.co.kr")
-	// var arr []jobData
+	var arr []jobData
 	respCheck(resp)
 	errCheck(err)
 	defer resp.Body.Close()
@@ -80,23 +73,12 @@ func main(){
 	doc.Find("div#MainSuperBrand").Find("ul.goodsBox").Find("li").Each(func(i int,s *goquery.Selection){
 		brandUrl, ok := s.Find("a.goodsBox-info").Attr("href") //슈퍼브랜드 채용주소 접근 성공
 		if ok {
-			go getAlbaList(brandUrl, ch) //알바리스트 배열 반환
-			totalJobs+=1
-			// for i := 0; i < len(arr); i++ {
-			// 	fmt.Println(arr[i])
-			// }
-			// fmt.Println("다음 직업으로 넘어갑니다.")
+			arr = getAlbaList(brandUrl) //알바리스트 배열 반환
+			for i := 0; i < len(arr); i++ {
+				fmt.Println(arr[i])
+			}
+			fmt.Println("다음 직업으로 넘어갑니다.")
 		}
 	})
-	
-	wch := make(chan []string)
-	file, err := os.Create("Jobs.csv")
-	errCheck(err)
-
-	w := csv.NewWriter(file)
-	
-
-	for i := 0; i < totalJobs; i++ {
 		
-	}
 }
