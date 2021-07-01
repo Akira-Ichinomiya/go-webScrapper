@@ -64,10 +64,16 @@ func getAlbaList(url string, ch chan<- []jobData)  {
 	ch <- albaList
 }
 
+func setWriting(job jobData, wch chan<- []string){
+	jobslice := []string{job.location, job.company, job.time, job.pay, job.regDate}
+	wch <- jobslice
+}
+
 //메인에서는 서버를 열어 home에 원하는 직업을 입력해 그 결과를 csv파일로 얻을 수 있도록 해준다.
 func main(){
 	totalJobs := 0
 	ch := make(chan []jobData)
+	var jobs []jobData
 	resp, err := http.Get("http://www.alba.co.kr")
 	// var arr []jobData
 	respCheck(resp)
@@ -88,15 +94,29 @@ func main(){
 			// fmt.Println("다음 직업으로 넘어갑니다.")
 		}
 	})
+
+	for i := 0; i < totalJobs; i++ {
+		jobs = append(jobs, <-ch...)
+	}
 	
 	wch := make(chan []string)
 	file, err := os.Create("Jobs.csv")
 	errCheck(err)
 
 	w := csv.NewWriter(file)
-	
+	defer w.Flush()
 
-	for i := 0; i < totalJobs; i++ {
-		
+	headers := []string {"location", "company", "Data", "Pay", ""}
+
+	wErr := w.Write(headers)
+	errCheck(wErr)
+
+	for i := 0; i < len(jobs); i++ {
+		go setWriting(jobs[i], wch)
+	}
+
+	for i := 0; i < len(jobs); i++ {
+		wErr = w.Write(<-wch)
+		errCheck(wErr)
 	}
 }

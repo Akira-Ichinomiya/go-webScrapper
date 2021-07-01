@@ -69,7 +69,7 @@ func main(){
 	//html load
 	doc, err := goquery.NewDocumentFromReader(resp.Body) // 사이트 html 얻기
 	errCheck(err)
-	//슈퍼브랜드 채용정보 리스트를 반복문으로 돌아 각 브랜드 점포리스트들을 배열로 얻어 csv로 저장한다.
+	//슈퍼브랜드 채용정보 리스트를 반복문으로 돌아 각 브랜드 점포리스트들을 배열로 얻어 csv로 저장한다
 	doc.Find("div#MainSuperBrand").Find("ul.goodsBox").Find("li").Each(func(i int,s *goquery.Selection){
 		brandUrl, ok := s.Find("a.goodsBox-info").Attr("href") //슈퍼브랜드 채용주소 접근 성공
 		if ok {
